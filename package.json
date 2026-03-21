@@ -1,0 +1,40 @@
+{
+  "name": "task-master",
+  "version": "1.0.0",
+  "description": "Schedule and run AI workflows with Claude Code. Cron-style automation without a persistent agent.",
+  "main": "skill.js",
+  "bin": {
+    "task-master": "./.claude/skills/task-master/skill.js"
+  },
+  "scripts": {
+    "start": "node ./.claude/skills/task-master/skill.js",
+    "lint": "echo \"Add linter later\""
+  },
+  "keywords": [
+    "ai",
+    "automation",
+    "scheduler",
+    "claude",
+    "cron",
+    "workflow",
+    "llm",
+    "agent"
+  ],
+  "author": "Dave Meade <dave@slackspace.net> (https://slackspace.net/)",
+  "license": "MIT",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DaveMeade/task-master.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DaveMeade/task-master/issues"
+  },
+  "homepage": "https://github.com/DaveMeade/task-master#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  }
+}

@@ -1,0 +1,5 @@
+# Force LF for shell scripts
+*.sh text eol=lf
+
+# Default behavior for others
+* text=auto
