@@ -89,6 +89,13 @@ if (operation === "delete" || operation === "run") {
 }
 // list requires nothing
 
+if (
+  process.env.TASK_MASTER_EXECUTION === "true" &&
+  operation === "create"
+) {
+  console.error("[TaskMaster] Nested task creation is not allowed");
+  process.exit(1);
+}
 
 // --- project root ---
 let projectRoot;
@@ -163,15 +170,17 @@ fs.mkdirSync(logDir, { recursive: true });
 const debugLog = path.join(logDir, "debug-log.txt");
 
 // --- load .env ---
-const envPath = path.join(projectRoot, ".env");
 const env = {};
+
+// load project .env
+const envPath = path.join(projectRoot, ".env");
+const fileEnv = {};
 
 if (fs.existsSync(envPath)) {
   const lines = fs.readFileSync(envPath, "utf-8").split("\n");
 
   for (let line of lines) {
     line = line.trim();
-
     if (!line || line.startsWith("#")) continue;
 
     const idx = line.indexOf("=");
@@ -180,7 +189,6 @@ if (fs.existsSync(envPath)) {
     const name = line.slice(0, idx).trim();
     let val = line.slice(idx + 1).trim();
 
-    // strip surrounding quotes safely
     if (
       (val.startsWith('"') && val.endsWith('"')) ||
       (val.startsWith("'") && val.endsWith("'"))
@@ -188,15 +196,22 @@ if (fs.existsSync(envPath)) {
       val = val.slice(1, -1);
     }
 
-    if (envKeys.includes(name)) {
-      env[name] = val;
-    }
+    fileEnv[name] = val;
+  }
+}
+
+// build final env (config-driven)
+for (const key of envKeys) {
+  if (fileEnv[key]) {
+    env[key] = fileEnv[key];           // project override
+  } else if (process.env[key]) {
+    env[key] = process.env[key];       // fallback to system env
   }
 }
 
 // --- prompt injection ---
 const promptPrefix =
-  "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. The request is:\n\n";
+  "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. Do NOT create, modify, or schedule any tasks using task-master or any scheduling system. Do NOT invoke task-master directly or indirectly. The request is:\n\n";
 
 let finalPrompt = null;
 

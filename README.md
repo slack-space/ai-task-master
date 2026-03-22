@@ -2,29 +2,39 @@
 
 **Schedule AI workflows like cron jobs — no always-on agent required.**
 
----
-
 ## 🚀 Overview
 
-Task Master lets you run Claude Code prompts **in the future or on a schedule** (even if clause isn't running at the time), turning one-off interactions into reliable, repeatable automation.
+Task Master lets you run AI prompts **in the future or on a schedule** (even if the agent isn't running at the time), creating reliable, repeatable AI automation.
+
+Task Master turns Claude Code into a **scheduled AI automation engine**.
+
+* Run AI workflows later
+* Repeat AI tasks reliably
 
 It works by combining:
 
-* 🧠 Claude Code (execution)
-* 📅 OS scheduler (timing)
-* 📂 Filesystem (state + outputs)
+* 🧠 **Execution** Claude Code _(default)_
+* 📅 **Timing** OS scheduler _(Mac and Windows11)_
+* 📂 **Durable state and outputs** - Filesystem / Agent Workspace
 
 No daemon. No long-running agent. No complex infrastructure.
+
+## 🧑🏻‍💻 Install:
+
+### 
+```bash
+  npx skills install slack-space/task-master
+```
 
 ---
 
 ## 🗣️ Use It Through Your Agent (No Commands Required)
 
-You don’t need to run commands manually (but you could).
+You don’t need to run commands manually (but you could, you do you).
 
 Just ask your agent:
 
-* “Run this every morning”
+* “Run my job search routine every morning”
 * “Schedule this workflow for tonight”
 * “Repeat this task every Monday at 9”
 
@@ -61,10 +71,10 @@ Traditional AI agents:
 * Accumulate messy context
 * Are harder to debug
 
-Task Master:
+Task Master tasks:
 * Runs only when needed
 * Uses fresh context every time
-* Stores results in files you control
+* Can stores results in files you control
 
 👉 Think: **Cron + AI**
 
@@ -90,8 +100,8 @@ Task Master shines when paired with structured workflows:
 * `.prose` defines multi-step logic
 * Task Master schedules execution
 
-```text id="r5onvp"
-Scheduler → Workflow → Files → Reports
+```text
+Scheduler → Workflow → Files + Reports
 ```
 
 👉 A simple scheduled prompt can trigger complex, multi-step automation.
@@ -102,19 +112,24 @@ Scheduler → Workflow → Files → Reports
 
 ### `task-master.config.yml`
 
-```yaml id="py4var"
+```yaml
 action:
   command: claude
 
   flags:
     - "--name scheduled-automations"
-    # - "--dangerously-skip-permissions"  # Enable only for trusted payloads
-    - "--model coder"
+    # Non-default flags:
+    #- "--dangerously-skip-permissions" # Enable only for trusted payloads.
+    #- "--model coder" # for ollama override, specify your model
 
-  env:
+  env: # Ensure these are in your environment variables or a .env file:
     - ANTHROPIC_API_KEY
-    - ANTHROPIC_BASE_URL
-    - ANTHROPIC_AUTH_TOKEN
+    # Non-default env (ollama override):
+    #- ANTHROPIC_BASE_URL
+    #- ANTHROPIC_AUTH_TOKEN
+
+logs:
+  path: logs/task-master
 ```
 
 ---
@@ -131,10 +146,17 @@ This enables:
 
 Example:
 
-```env id="ze1o2g"
-ANTHROPIC_BASE_URL=http://localhost:11434
-ANTHROPIC_AUTH_TOKEN=ollama
-ANTHROPIC_API_KEY=sk-ant-ollama-12345
+```ini
+# **** TASK MASTER CONFIGURATION ****
+# ANTHROPIC_API_KEY is required. (If not already persistent in your environment.)
+ANTHROPIC_API_KEY='sk-ant-ollama-12345'
+#   - FOR OLLAMA: Set ANTHROPIC_API_KEY to any value. It will not be used, but must be present to satisfy claude's login check. 
+
+# FOR OLLAMA: override ClaudeCode's base URL and provide a dummy auth token to point to your Ollama instance
+ANTHROPIC_BASE_URL='http://localhost:11434'
+ANTHROPIC_AUTH_TOKEN='ollama'
+
+# FOR OLLAMA: Also set model in task-master.config.yml to the name of your local model as listed in `ollama list`
 ```
 
 ---
@@ -145,7 +167,7 @@ You can run commands manually if desired:
 
 ### Create a task
 
-```bash id="tsc3ce"
+```bash
 node skill.js --task "test" --prompt "Append 'hello' to ./test.txt" --when "2m"
 ```
 
@@ -153,7 +175,7 @@ node skill.js --task "test" --prompt "Append 'hello' to ./test.txt" --when "2m"
 
 ### List tasks
 
-```bash id="oaod39"
+```bash
 node skill.js --action list
 ```
 
@@ -162,7 +184,7 @@ node skill.js --action list
 ### Run a named task immediately
 
 ```bash id="zkh4a7"
-node skill.js --action run --task "test"
+node skill.js --action run --task "test-task-name"
 ```
 
 ---
@@ -170,7 +192,7 @@ node skill.js --action run --task "test"
 ### Delete a task
 
 ```bash id="ujco0x"
-node skill.js --action delete --task "test"
+node skill.js --action delete --task "test-task-name"
 ```
 
 ---
@@ -204,7 +226,7 @@ Defaults to `once` if no prefix is provided.
 
 ## 🧱 Architecture
 
-```text id="k52ma0"
+```text
 Claude → Task Master → OS Scheduler → Filesystem
 ```
 
@@ -232,18 +254,8 @@ Please follow standard practices:
 
 ## 📦 Installation
 
-```bash id="adq7mc"
-npx skills add <your-username>/task-master
+```bash
+npx skills add slack-space/task-master
 ```
 
 ---
-
-## ⚡ Summary
-
-Task Master turns Claude Code into a **scheduled automation engine**.
-
-* Run workflows later
-* Repeat tasks reliably
-* Keep everything simple, visible, and file-based
-
-👉 Build once. Run forever.
