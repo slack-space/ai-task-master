@@ -7,7 +7,7 @@ action:
     #- "--dangerously-skip-permissions" # Enable only for trusted payloads.
     #- "--model coder" # for ollama override, specify your model
 
-  env:
+  env: # Ensure these are in your environment variables or a .env file:
     - ANTHROPIC_API_KEY
     # Non-default env (ollama override):
     #- ANTHROPIC_BASE_URL
