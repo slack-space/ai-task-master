@@ -78,6 +78,8 @@ if ($data.action -eq "run") {
     exit 0
 }
 
+# only remaining action is create ...
+
 # --- build env injection string ---
 $envPrefix = ""
 
@@ -87,6 +89,7 @@ if ($data.env) {
         $envPrefix += "`$env:$key='$value'; "
     }
 }
+$envPrefix += "`$env:TASK_MASTER_EXECUTION='true'; "
 
 # --- resolve command ---
 if ($exec.type -eq "claude") {
