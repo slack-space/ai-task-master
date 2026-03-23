@@ -14,4 +14,4 @@ action:
     #- ANTHROPIC_AUTH_TOKEN
 
 logs:
-  path: logs/task-master
+  path: logs/ai-task-master

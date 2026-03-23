@@ -27,11 +27,11 @@ if ($data.action -eq "list") {
     }
 
     if (-not $tasks) {
-        Write-Host "[TaskMaster] No tasks found."
+        Write-Host "[ai-task-master] No tasks found."
         return
     }
 
-    Write-Host "`n[TaskMaster] Scheduled Tasks:`n"
+    Write-Host "`n[ai-task-master] Scheduled Tasks:`n"
 
     foreach ($task in $tasks) {
         $triggerText = $task.Triggers | ForEach-Object {
@@ -211,7 +211,7 @@ Register-ScheduledTask `
     -Force
 
 Write-Host ""
-Write-Host "[TaskMaster] Task Registered"
+Write-Host "[ai-task-master] Task Registered"
 Write-Host ""
 Write-Host "Name:"
 Write-Host "  $($data.taskName)"

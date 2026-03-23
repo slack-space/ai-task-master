@@ -34,7 +34,7 @@ if (args.list) {
 
 if (args.help || args.h) {
   console.log(`
-Task Master
+AI Task Master
 
 Schedule and manage automated execution of Claude prompts.
 
@@ -55,7 +55,7 @@ Examples:
   node skill.js --action run --task "job-search"
 
 Notes:
-  - Task Master only schedules execution
+  - AI Task Master only schedules execution
   - It does not determine what to run
 `);
   process.exit(0);
@@ -72,7 +72,7 @@ let taskName = args.task;
 // --- validation ---
 if (operation === "create") {
   if (!prompt || !when) {
-    console.error("[TaskMaster] Missing required args for create: --prompt --when");
+    console.error("[ai-task-master] Missing required args for create: --prompt --when");
     process.exit(1);
   }
 
@@ -83,7 +83,7 @@ if (operation === "create") {
 
 if (operation === "delete" || operation === "run") {
   if (!taskName) {
-    console.error(`[TaskMaster] Missing required arg for ${operation}: --task`);
+    console.error(`[ai-task-master] Missing required arg for ${operation}: --task`);
     process.exit(1);
   }
 }
@@ -93,7 +93,7 @@ if (
   process.env.TASK_MASTER_EXECUTION === "true" &&
   operation === "create"
 ) {
-  console.error("[TaskMaster] Nested task creation is not allowed");
+  console.error("[ai-task-master] Nested task creation is not allowed");
   process.exit(1);
 }
 
@@ -113,9 +113,9 @@ try {
 projectRoot = path.resolve(projectRoot);
 
 // --- paths ---
-const rootConfigPath = path.join(projectRoot, "task-master.config.yml");
-const skillConfigPath = path.join(__dirname, "task-master.config.yml");
-const skillOverridePath = path.join(__dirname, "task-master.config.override.yml");
+const rootConfigPath = path.join(projectRoot, "ai-task-master.config.yml");
+const skillConfigPath = path.join(__dirname, "ai-task-master.config.yml");
+const skillOverridePath = path.join(__dirname, "ai-task-master.config.override.yml");
 
 // --- default config ---
 const defaultConfig = {
@@ -147,7 +147,7 @@ if (fs.existsSync(rootConfigPath)) {
 } else {
   // create user config if missing
   fs.writeFileSync(rootConfigPath, yaml.dump(defaultConfig, { lineWidth: 120 }));
-  console.log(`Created default task-master.config.yml at ${rootConfigPath}`);
+  console.log(`Created default ai-task-master.config.yml at ${rootConfigPath}`);
 }
 
 // 3. dev override (optional, local only)
@@ -163,7 +163,7 @@ const command = actionConfig.command || "claude";
 const flags = actionConfig.flags || [];
 const envKeys = actionConfig.env || [];
 
-const logPath = config.logs?.path || "logs/task-master";
+const logPath = config.logs?.path || "logs/ai-task-master";
 const logDir = path.join(projectRoot, logPath);
 fs.mkdirSync(logDir, { recursive: true });
 
@@ -211,7 +211,7 @@ for (const key of envKeys) {
 
 // --- prompt injection ---
 const promptPrefix =
-  "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. Do NOT create, modify, or schedule any tasks using task-master or any scheduling system. Do NOT invoke task-master directly or indirectly. The request is:\n\n";
+  "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. Do NOT create, modify, or schedule any tasks using ai-task-master or any scheduling system. Do NOT invoke ai-task-master directly or indirectly. The request is:\n\n";
 
 let finalPrompt = null;
 
@@ -387,7 +387,7 @@ if (
 }
 
 if (dryRun) {
-  console.log("\n[TaskMaster] DRY RUN\n");
+  console.log("\n[ai-task-master] DRY RUN\n");
 
   console.log("Task Name:");
   console.log(`  ${taskName}\n`);
