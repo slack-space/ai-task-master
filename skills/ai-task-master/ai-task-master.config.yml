@@ -1,3 +1,4 @@
+# You make create this file at the root of your project to override this file.
 action:
   command: claude
 

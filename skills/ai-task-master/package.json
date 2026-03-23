@@ -1,0 +1,11 @@
+{
+  "name": "ai-task-master",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  }
+}
