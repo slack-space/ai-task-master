@@ -113,9 +113,9 @@ try {
 projectRoot = path.resolve(projectRoot);
 
 // --- paths ---
-const rootConfigPath = path.join(projectRoot, "task-master.config.yml");
-const skillConfigPath = path.join(__dirname, "task-master.config.yml");
-const skillOverridePath = path.join(__dirname, "task-master.config.override.yml");
+const rootConfigPath = path.join(projectRoot, "ai-task-master.config.yml");
+const skillConfigPath = path.join(__dirname, "ai-task-master.config.yml");
+const skillOverridePath = path.join(__dirname, "ai-task-master.config.override.yml");
 
 // --- default config ---
 const defaultConfig = {
@@ -147,7 +147,7 @@ if (fs.existsSync(rootConfigPath)) {
 } else {
   // create user config if missing
   fs.writeFileSync(rootConfigPath, yaml.dump(defaultConfig, { lineWidth: 120 }));
-  console.log(`Created default task-master.config.yml at ${rootConfigPath}`);
+  console.log(`Created default ai-task-master.config.yml at ${rootConfigPath}`);
 }
 
 // 3. dev override (optional, local only)
@@ -163,7 +163,7 @@ const command = actionConfig.command || "claude";
 const flags = actionConfig.flags || [];
 const envKeys = actionConfig.env || [];
 
-const logPath = config.logs?.path || "logs/task-master";
+const logPath = config.logs?.path || "logs/ai-task-master";
 const logDir = path.join(projectRoot, logPath);
 fs.mkdirSync(logDir, { recursive: true });
 
@@ -211,7 +211,7 @@ for (const key of envKeys) {
 
 // --- prompt injection ---
 const promptPrefix =
-  "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. Do NOT create, modify, or schedule any tasks using task-master or any scheduling system. Do NOT invoke task-master directly or indirectly. The request is:\n\n";
+  "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. Do NOT create, modify, or schedule any tasks using ai-task-master or any scheduling system. Do NOT invoke ai-task-master directly or indirectly. The request is:\n\n";
 
 let finalPrompt = null;
 

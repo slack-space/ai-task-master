@@ -1,9 +1,9 @@
 ---
-name: task-master
+name: ai-task-master
 description: Schedule and manage automated task execution. Use this to run prompts or workflows later or on a recurring schedule without user interaction.
 ---
 
-# Task Master
+# AI Task Master
 
 Task Master enables scheduling of autonomous actions. It should be used whenever a user wants something to happen in the future or repeatedly without being present.
 

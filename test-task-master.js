@@ -7,7 +7,7 @@ const path = require("path");
 const REPORT = "taskmaster-test-report.txt";
 const TASK_ONCE = "tm-test-once";
 const TASK_DAILY = "tm-test-daily";
-const LOG_FILE = path.join("logs", "task-master", "debug-log.txt");
+const LOG_FILE = path.join("logs", "ai-task-master", "debug-log.txt");
 
 let PASS = 0;
 let FAIL = 0;
@@ -40,8 +40,8 @@ function sleep(ms) {
   fs.writeFileSync(REPORT, `=== TaskMaster Test Report ===\nStart: ${new Date()}\n\n`);
 
   // cleanup
-  run(`node skills/task-master/skill.js --delete ${TASK_ONCE}`);
-  run(`node skills/task-master/skill.js --delete ${TASK_DAILY}`);
+  run(`node skills/ai-task-master/skill.js --delete ${TASK_ONCE}`);
+  run(`node skills/ai-task-master/skill.js --delete ${TASK_DAILY}`);
 
   // compute time +2 minutes
   const now = new Date();
@@ -51,13 +51,13 @@ function sleep(ms) {
   const timeStr = `${hh}:${mm}`;
 
   // create tasks
-  run(`node skills/task-master/skill.js --task ${TASK_ONCE} --prompt "echo ONCE_TASK_RAN >> ${LOG_FILE}" --when "2m"`);
-  run(`node skills/task-master/skill.js --task ${TASK_DAILY} --prompt "echo DAILY_TASK_RAN >> ${LOG_FILE}" --when "daily@${timeStr}"`);
+  run(`node skills/ai-task-master/skill.js --task ${TASK_ONCE} --prompt "echo ONCE_TASK_RAN >> ${LOG_FILE}" --when "2m"`);
+  run(`node skills/ai-task-master/skill.js --task ${TASK_DAILY} --prompt "echo DAILY_TASK_RAN >> ${LOG_FILE}" --when "daily@${timeStr}"`);
 
   fs.appendFileSync(REPORT, "\nTasks created\n");
 
   // list check
-  const list1 = run(`node skills/task-master/skill.js --list`);
+  const list1 = run(`node skills/ai-task-master/skill.js --list`);
   fs.appendFileSync(REPORT, `\nList Output:\n${list1}\n`);
 
   list1.includes(TASK_ONCE) ? recordPass("Once task listed") : recordFail("Once task missing");
@@ -82,7 +82,7 @@ function sleep(ms) {
     : recordFail("Daily task did not execute");
 
   // verify once removed
-  const list2 = run(`node skills/task-master/skill.js --list`);
+  const list2 = run(`node skills/ai-task-master/skill.js --list`);
   fs.appendFileSync(REPORT, `\nList After Execution:\n${list2}\n`);
 
   !list2.includes(TASK_ONCE)
@@ -90,9 +90,9 @@ function sleep(ms) {
     : recordFail("Once task still present");
 
   // delete daily
-  run(`node skills/task-master/skill.js --delete ${TASK_DAILY}`);
+  run(`node skills/ai-task-master/skill.js --delete ${TASK_DAILY}`);
 
-  const list3 = run(`node skills/task-master/skill.js --list`);
+  const list3 = run(`node skills/ai-task-master/skill.js --list`);
 
   !list3.includes(TASK_DAILY)
     ? recordPass("Daily task deleted")

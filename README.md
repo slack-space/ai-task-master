@@ -23,7 +23,7 @@ No daemon. No long-running agent. No complex infrastructure.
 
 ### 
 ```bash
-  npx skills install slack-space/task-master
+  npx skills install slack-space/ai-task-master
 ```
 
 ---
@@ -110,7 +110,7 @@ Scheduler → Workflow → Files + Reports
 
 ## ⚙️ Configuration
 
-### `task-master.config.yml`
+### `ai-task-master.config.yml`
 
 ```yaml
 action:
@@ -129,7 +129,7 @@ action:
     #- ANTHROPIC_AUTH_TOKEN
 
 logs:
-  path: logs/task-master
+  path: logs/ai-task-master
 ```
 
 ---
@@ -156,7 +156,7 @@ ANTHROPIC_API_KEY='sk-ant-ollama-12345'
 ANTHROPIC_BASE_URL='http://localhost:11434'
 ANTHROPIC_AUTH_TOKEN='ollama'
 
-# FOR OLLAMA: Also set model in task-master.config.yml to the name of your local model as listed in `ollama list`
+# FOR OLLAMA: Also set model in ai-task-master.config.yml to the name of your local model as listed in `ollama list`
 ```
 
 ---
@@ -255,7 +255,7 @@ Please follow standard practices:
 ## 📦 Installation
 
 ```bash
-npx skills add slack-space/task-master
+npx skills add slack-space/ai-task-master
 ```
 
 ---

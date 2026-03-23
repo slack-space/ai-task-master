@@ -1,13 +1,13 @@
 {
-  "name": "task-master",
+  "name": "ai-task-master",
   "version": "1.0.0",
   "description": "Schedule and run AI workflows with. Cron-style automation without a persistent agent.",
   "main": "skill.js",
   "bin": {
-    "task-master": "./.claude/skills/task-master/skill.js"
+    "ai-task-master": "./.claude/skills/ai-task-master/skill.js"
   },
   "scripts": {
-    "start": "node ./.claude/skills/task-master/skill.js",
+    "start": "node ./.claude/skills/ai-task-master/skill.js",
     "test": "node test-task-master.js",
     "lint": "echo \"Add linter later\""
   },
@@ -26,12 +26,12 @@
   "type": "commonjs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/slack-space/task-master.git"
+    "url": "https://github.com/slack-space/ai-task-master.git"
   },
   "bugs": {
-    "url": "https://github.com/slack-space/task-master/issues"
+    "url": "https://github.com/slack-space/ai-task-master/issues"
   },
-  "homepage": "https://github.com/slack-space/task-master#readme",
+  "homepage": "https://github.com/slack-space/ai-task-master#readme",
   "engines": {
     "node": ">=18"
   },
