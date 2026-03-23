@@ -7,7 +7,7 @@ PAYLOAD=$(echo "$PAYLOAD_BASE64" | base64 --decode)
 
 # --- deps ---
 if ! command -v jq &> /dev/null; then
-  echo "[TaskMaster] jq is required but not installed."
+  echo "[ai-task-master] jq is required but not installed."
   exit 1
 fi
 
@@ -16,15 +16,15 @@ ACTION=$(echo "$PAYLOAD" | jq -r '.action')
 TASK_NAME=$(echo "$PAYLOAD" | jq -r '.taskName')
 PROJECT_ROOT=$(echo "$PAYLOAD" | jq -r '.projectRoot')
 
-if [[ "$TASK_NAME" == com.taskmaster.* ]]; then
+if [[ "$TASK_NAME" == com.ai-task-master.* ]]; then
   LABEL="$TASK_NAME"
-  TASK_NAME="${TASK_NAME#com.taskmaster.}"
+  TASK_NAME="${TASK_NAME#com.ai-task-master.}"
 else
-  LABEL="com.taskmaster.$TASK_NAME"
+  LABEL="com.ai-task-master.$TASK_NAME"
 fi
 
 LAUNCH_DIR="$HOME/Library/LaunchAgents"
-SCRIPT_DIR="$HOME/.taskmaster/scripts"
+SCRIPT_DIR="$HOME/.ai-task-master/scripts"
 
 PLIST_PATH="$LAUNCH_DIR/$LABEL.plist"
 SCRIPT_PATH="$SCRIPT_DIR/$TASK_NAME.sh"
@@ -81,13 +81,13 @@ EOF
 
 # --- build script ---
 build_script() {
-  echo "[TaskMaster] Creating script: $SCRIPT_PATH"
+  echo "[ai-task-master] Creating script: $SCRIPT_PATH"
 
   EXEC=$(echo "$PAYLOAD" | jq -r '.execution.type')
   EXEC_PATH=$(command -v "$EXEC")
 
   if [ -z "$EXEC_PATH" ]; then
-    echo "[TaskMaster] Command not found: $EXEC"
+    echo "[ai-task-master] Command not found: $EXEC"
     exit 1
   fi
   CURRENT_PATH="$PATH"
@@ -129,7 +129,7 @@ EOF
 
 # --- build plist ---
 build_plist() {
-  echo "[TaskMaster] Creating plist: $PLIST_PATH"
+  echo "[ai-task-master] Creating plist: $PLIST_PATH"
 
   TYPE=$(echo "$PAYLOAD" | jq -r '.triggers[0].type')
 
@@ -199,7 +199,7 @@ if [ "$ACTION" = "create" ]; then
 
   launchctl bootstrap gui/$(id -u) "$PLIST_PATH"
 
-  echo "[TaskMaster] Created task: $TASK_NAME"
+  echo "[ai-task-master] Created task: $TASK_NAME"
 
 elif [ "$ACTION" = "delete" ]; then
   launchctl bootout gui/$(id -u) "$PLIST_PATH" 2>/dev/null || true
@@ -207,19 +207,19 @@ elif [ "$ACTION" = "delete" ]; then
   rm -f "$PLIST_PATH"
   rm -f "$SCRIPT_PATH"
 
-  echo "[TaskMaster] Deleted task: $TASK_NAME"
+  echo "[ai-task-master] Deleted task: $TASK_NAME"
 
 elif [ "$ACTION" = "run" ]; then
   launchctl kickstart -k gui/$(id -u)/$LABEL
 
 elif [ "$ACTION" = "list" ]; then
-  launchctl list | grep taskmaster | while read -r line; do
+  launchctl list | grep ai-task-master | while read -r line; do
     NAME=$(echo "$line" | awk '{print $3}')
-    CLEAN=${NAME#com.taskmaster.}
+    CLEAN=${NAME#com.ai-task-master.}
     echo "$CLEAN"
   done || true
 
 else
-  echo "[TaskMaster] Unknown action: $ACTION"
+  echo "[ai-task-master] Unknown action: $ACTION"
   exit 1
 fi

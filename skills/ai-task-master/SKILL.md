@@ -5,7 +5,7 @@ description: Schedule and manage automated task execution. Use this to run promp
 
 # AI Task Master
 
-Task Master enables scheduling of autonomous actions. It should be used whenever a user wants something to happen in the future or repeatedly without being present.
+AI Task Master enables scheduling of autonomous actions. It should be used whenever a user wants something to happen in the future or repeatedly without being present.
 
 ---
 
@@ -41,7 +41,7 @@ Do NOT use this skill when:
 - Does **not ask questions or confirmations**
 - Assumes no user is present at runtime
 - Tasks must be **fully self-contained**
-- Task Master schedules execution but does not interpret intent
+- AI Task Master schedules execution but does not interpret intent
 
 ---
 
@@ -166,7 +166,7 @@ node skill.js --run <taskname>
 
 ## Workflow Integration (Critical)
 
-Task Master does NOT decide what to run — it only schedules execution.
+AI Task Master does NOT decide what to run — it only schedules execution.
 
 If the user refers to a workflow or named process - you MUST convert it into an explicit executable command.
 
@@ -213,4 +213,4 @@ Do NOT use this skill if:
 ---
 
 ## Summary
-Task Master schedules reliable, autonomous execution of tasks and workflows in the future or on a recurring basis.
+AI Task Master schedules reliable, autonomous execution of tasks and workflows in the future or on a recurring basis.

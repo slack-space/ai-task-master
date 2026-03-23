@@ -4,7 +4,7 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const REPORT = "taskmaster-test-report.txt";
+const REPORT = "ai-task-master-test-report.txt";
 const TASK_ONCE = "tm-test-once";
 const TASK_DAILY = "tm-test-daily";
 const LOG_FILE = path.join("logs", "ai-task-master", "debug-log.txt");
@@ -37,7 +37,7 @@ function sleep(ms) {
 }
 
 (async () => {
-  fs.writeFileSync(REPORT, `=== TaskMaster Test Report ===\nStart: ${new Date()}\n\n`);
+  fs.writeFileSync(REPORT, `=== AI Task Master Test Report ===\nStart: ${new Date()}\n\n`);
 
   // cleanup
   run(`node skills/ai-task-master/skill.js --delete ${TASK_ONCE}`);

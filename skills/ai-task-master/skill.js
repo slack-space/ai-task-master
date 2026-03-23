@@ -34,7 +34,7 @@ if (args.list) {
 
 if (args.help || args.h) {
   console.log(`
-Task Master
+AI Task Master
 
 Schedule and manage automated execution of Claude prompts.
 
@@ -55,7 +55,7 @@ Examples:
   node skill.js --action run --task "job-search"
 
 Notes:
-  - Task Master only schedules execution
+  - AI Task Master only schedules execution
   - It does not determine what to run
 `);
   process.exit(0);
@@ -72,7 +72,7 @@ let taskName = args.task;
 // --- validation ---
 if (operation === "create") {
   if (!prompt || !when) {
-    console.error("[TaskMaster] Missing required args for create: --prompt --when");
+    console.error("[ai-task-master] Missing required args for create: --prompt --when");
     process.exit(1);
   }
 
@@ -83,7 +83,7 @@ if (operation === "create") {
 
 if (operation === "delete" || operation === "run") {
   if (!taskName) {
-    console.error(`[TaskMaster] Missing required arg for ${operation}: --task`);
+    console.error(`[ai-task-master] Missing required arg for ${operation}: --task`);
     process.exit(1);
   }
 }
@@ -93,7 +93,7 @@ if (
   process.env.TASK_MASTER_EXECUTION === "true" &&
   operation === "create"
 ) {
-  console.error("[TaskMaster] Nested task creation is not allowed");
+  console.error("[ai-task-master] Nested task creation is not allowed");
   process.exit(1);
 }
 
@@ -387,7 +387,7 @@ if (
 }
 
 if (dryRun) {
-  console.log("\n[TaskMaster] DRY RUN\n");
+  console.log("\n[ai-task-master] DRY RUN\n");
 
   console.log("Task Name:");
   console.log(`  ${taskName}\n`);

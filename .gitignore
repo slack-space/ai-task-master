@@ -1,6 +1,8 @@
 # Dev files to ignore
 ai-task-master.config.override.yml
 skills/**/ai-task-master.config.override.yml
+taskmaster-test-report.txt
+ai-task-master-test-report.txt
 notes
 notes/
 
