@@ -1,6 +1,0 @@
-action:
-  command: claude
-  flags:
-    - '--name scheduled-automations'
-  env:
-    - ANTHROPIC_API_KEY
