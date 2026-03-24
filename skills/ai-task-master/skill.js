@@ -215,6 +215,9 @@ for (const key of envKeys) {
 env.AI_TASK_MASTER_LOG = path.join(logDir, "debug-log.txt");
 env.AI_TASK_MASTER_PATH = process.env.PATH;
 
+console.log("[DEBUG JS] PATH:", process.env.PATH);
+console.log("[DEBUG JS] AI_TASK_MASTER_PATH:", env.AI_TASK_MASTER_PATH);
+
 // --- prompt injection ---
 const promptPrefix =
   "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. Do NOT create, modify, or schedule any tasks using ai-task-master or any scheduling system. Do NOT invoke ai-task-master directly or indirectly. The request is:\n\n";
@@ -438,7 +441,13 @@ if (os.platform() === "win32") {
 } else if (os.platform() === "darwin") {
   execSync(
     `bash "${__dirname}/adapters/mac.sh" ${payload}`,
-    { stdio: "inherit" }
+    {
+      env: {
+        ...process.env,
+        ...env
+      },
+      stdio: "inherit"
+    }
   );
 } else if (os.platform() === "linux") {
   execSync(

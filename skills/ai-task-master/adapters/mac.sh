@@ -2,6 +2,8 @@
 
 set -e
 
+echo "[DEBUG ADAPTER] AI_TASK_MASTER_PATH=$AI_TASK_MASTER_PATH"
+
 PAYLOAD_BASE64="$1"
 PAYLOAD=$(echo "$PAYLOAD_BASE64" | base64 --decode)
 
@@ -98,6 +100,9 @@ build_script() {
   ENV_EXPORTS=$(echo "$PAYLOAD" | jq -r '.env | to_entries[] | "export \(.key)=\(.value|@sh)"')
   FULL_COMMAND=$(echo "$PAYLOAD" | jq -r '.execution.fullCommand')
 
+  CURRENT_PATH="$AI_TASK_MASTER_PATH"
+
+  echo "[DEBUG ADAPTER](before script creation) CURRENT_PATH=$AI_TASK_MASTER_PATH"
   cat > "$SCRIPT_PATH" <<EOF
 #!/bin/bash
 
@@ -133,14 +138,20 @@ build_plist() {
 
 if [ "$TYPE" = "once" ]; then
 
-  ISO=$(echo "$PAYLOAD" | jq -r '.triggers[0].time')
+  ISO=$(echo "$PAYLOAD" | jq -r '.triggers[0].time // empty')
 
-  # strip milliseconds if present
-  ISO_CLEAN=\${ISO%%.*}
+  if [ -z "$ISO" ]; then
+    # fallback: now + 1 minute (same behavior as Linux)
+    DATE=$(date -v+1M "+%Y %m %d %H %M")
+  else
+    # clean ISO (remove ms + Z)
+    ISO_CLEAN=$(echo "$ISO" | sed -E 's/\..*//; s/Z$//')
 
-  DATE=$(date -j -f "%Y-%m-%dT%H:%M:%S" "\$ISO_CLEAN" "+%Y %m %d %H %M")
+    DATE=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S" "$ISO_CLEAN" "+%s")
+    DATE=$(date -r "$DATE" "+%Y %m %d %H %M")
+  fi
 
-  read Y M D H MIN <<< "\$DATE"
+  read Y M D H MIN <<< "$DATE"
 
   cat > "$PLIST_PATH" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -159,17 +170,16 @@ if [ "$TYPE" = "once" ]; then
 
   <key>StartCalendarInterval</key>
   <dict>
-    <key>Year</key><integer>\$Y</integer>
-    <key>Month</key><integer>\$M</integer>
-    <key>Day</key><integer>\$D</integer>
-    <key>Hour</key><integer>\$H</integer>
-    <key>Minute</key><integer>\$MIN</integer>
+    <key>Year</key><integer>$Y</integer>
+    <key>Month</key><integer>$M</integer>
+    <key>Day</key><integer>$D</integer>
+    <key>Hour</key><integer>$H</integer>
+    <key>Minute</key><integer>$MIN</integer>
   </dict>
 
 </dict>
 </plist>
 EOF
-
   else
     CAL=$(build_calendar_interval)
 

@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node ./.claude/skills/ai-task-master/skill.js",
     "test": "node skills/ai-task-master/test-ai-task-master.js",
+    "list": "node skills/ai-task-master/skill.js --list",
     "lint": "echo \"Add linter later\""
   },
   "keywords": [

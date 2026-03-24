@@ -15,7 +15,7 @@ const PROJECT_ROOT = process.cwd();
 const userPrompt = process.argv.slice(2).join(" ").trim();
 
 // --- config ---
-const REPORT = path.join(PROJECT_ROOT, "ai-task-master-test-report.txt");
+const REPORT = path.join(PROJECT_ROOT, "logs", "ai-task-master", "ai-task-master-test-report.txt");
 const TASK_ONCE = "tm-test-once";
 const TASK_DAILY = "tm-test-daily";
 const LOG_FILE = path.join(PROJECT_ROOT, "logs", "ai-task-master", "debug-log.txt");
