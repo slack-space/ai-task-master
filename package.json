@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node ./.claude/skills/ai-task-master/skill.js",
-    "test": "node test-task-master.js",
+    "test": "node skills/ai-task-master/test-ai-task-master.js",
     "lint": "echo \"Add linter later\""
   },
   "keywords": [

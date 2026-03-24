@@ -158,15 +158,17 @@ if (fs.existsSync(skillOverridePath)) {
 
 // --- extract config ---
 const actionConfig = config.action || {};
-
 const command = actionConfig.command || "claude";
-const flags = actionConfig.flags || [];
+const rawFlags = actionConfig.flags || [];
+// split flags like "--name scheduled-automations" into ["--name", "scheduled-automations"]
+const flags = rawFlags.flatMap(f => {
+  if (typeof f !== "string") return [];
+  return f.split(" ").filter(Boolean);
+});
 const envKeys = actionConfig.env || [];
-
 const logPath = config.logs?.path || "logs/ai-task-master";
 const logDir = path.join(projectRoot, logPath);
 fs.mkdirSync(logDir, { recursive: true });
-
 const debugLog = path.join(logDir, "debug-log.txt");
 
 // --- load .env ---
@@ -208,6 +210,10 @@ for (const key of envKeys) {
     env[key] = process.env[key];       // fallback to system env
   }
 }
+
+// inject system-level env (always present)
+env.AI_TASK_MASTER_LOG = path.join(logDir, "debug-log.txt");
+env.AI_TASK_MASTER_PATH = process.env.PATH;
 
 // --- prompt injection ---
 const promptPrefix =
@@ -348,12 +354,26 @@ if (operation === "create") {
 }
 
 // --- execution object (NEW MODEL) ---
+function shellEscape(str) {
+  if (!str) return "''";
+  return "'" + String(str).replace(/'/g, "'\\''") + "'";
+}
+
+const commandParts = [command, ...flags];
+if (finalPrompt) {
+  commandParts.push(shellEscape(finalPrompt));
+}
+
+const fullCommand = commandParts.join(" ");
+//env.AI_TASK_MASTER_COMMAND = fullCommand;
+
 const execution = {
   type: command,
   prompt: finalPrompt,
   flags,
   session,
-  appendLog: debugLog
+  appendLog: debugLog,
+  fullCommand
 };
 
 //console.log("ENV BEING SENT:", env);
@@ -415,11 +435,24 @@ if (os.platform() === "win32") {
   } else {
     execSync(psCommand, { stdio: "inherit" });
   }
-} else {
+} else if (os.platform() === "darwin") {
   execSync(
     `bash "${__dirname}/adapters/mac.sh" ${payload}`,
     { stdio: "inherit" }
   );
+} else if (os.platform() === "linux") {
+  execSync(
+    `bash "${__dirname}/adapters/linux.sh" ${payload}`,
+    {
+      env: {
+        ...process.env,
+        ...env
+      },
+      stdio: "inherit"
+    }
+  );
+} else {
+  throw new Error(`[ai-task-master] Unsupported platform: ${platform}`);
 }
 
 function deepMerge(target, source) {

@@ -5,6 +5,9 @@
   "engines": {
     "node": ">=18"
   },
+  "scripts": {
+    "test": "node skills/ai-task-master/test-ai-task-master.js"
+  },  
   "dependencies": {
     "js-yaml": "^4.1.1"
   }
