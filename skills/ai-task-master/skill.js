@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { execSync } = require("child_process");
-const yaml = require("js-yaml");
+//const yaml = require("js-yaml");
 
 const args = {};
 process.argv.slice(2).forEach((arg, i, arr) => {
@@ -14,6 +14,17 @@ process.argv.slice(2).forEach((arg, i, arr) => {
     args[key] = val;
   }
 });
+
+function loadJsonIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (e) {
+    console.error(`[ai-task-master] Failed to parse JSON: ${filePath}`);
+    throw e;
+  }
+}
 
 let operation = args.action || "create";
 
@@ -113,9 +124,9 @@ try {
 projectRoot = path.resolve(projectRoot);
 
 // --- paths ---
-const rootConfigPath = path.join(projectRoot, "ai-task-master.config.yml");
-const skillConfigPath = path.join(__dirname, "ai-task-master.config.yml");
-const skillOverridePath = path.join(__dirname, "ai-task-master.config.override.yml");
+const rootConfigPath = path.join(projectRoot, "ai-task-master.config.json");
+const skillConfigPath = path.join(__dirname, "ai-task-master.config.json");
+const skillOverridePath = path.join(__dirname, "ai-task-master.config.override.json");
 
 // --- default config ---
 const defaultConfig = {
@@ -131,30 +142,31 @@ const defaultConfig = {
 };
 
 // --- load or create config ---
-// --- load config (correct order) ---
+// --- load config (JSON version) ---
 let config = { ...defaultConfig };
 
 // 1. load skill defaults
-if (fs.existsSync(skillConfigPath)) {
-  const skillConfig = yaml.load(fs.readFileSync(skillConfigPath, "utf8"));
+const skillConfig = loadJsonIfExists(skillConfigPath);
+if (skillConfig) {
   config = deepMerge(config, skillConfig);
 }
 
 // 2. load user override (root)
-if (fs.existsSync(rootConfigPath)) {
-  const rootConfig = yaml.load(fs.readFileSync(rootConfigPath, "utf8"));
+const rootConfig = loadJsonIfExists(rootConfigPath);
+if (rootConfig) {
   config = deepMerge(config, rootConfig);
 } else {
-  // create user config if missing
-  fs.writeFileSync(rootConfigPath, yaml.dump(defaultConfig, { lineWidth: 120 }));
-  console.log(`Created default ai-task-master.config.yml at ${rootConfigPath}`);
+  fs.writeFileSync(rootConfigPath, JSON.stringify(defaultConfig, null, 2));
+  console.log(`Created default ai-task-master.config.json at ${rootConfigPath}`);
 }
 
 // 3. dev override (optional, local only)
-if (fs.existsSync(skillOverridePath)) {
-  const overrideConfig = yaml.load(fs.readFileSync(skillOverridePath, "utf8"));
+const overrideConfig = loadJsonIfExists(skillOverridePath);
+if (overrideConfig) {
   config = deepMerge(config, overrideConfig);
 }
+
+delete config._notes;
 
 // --- extract config ---
 const actionConfig = config.action || {};
@@ -214,9 +226,6 @@ for (const key of envKeys) {
 // inject system-level env (always present)
 env.AI_TASK_MASTER_LOG = path.join(logDir, "debug-log.txt");
 env.AI_TASK_MASTER_PATH = process.env.PATH;
-
-console.log("[DEBUG JS] PATH:", process.env.PATH);
-console.log("[DEBUG JS] AI_TASK_MASTER_PATH:", env.AI_TASK_MASTER_PATH);
 
 // --- prompt injection ---
 const promptPrefix =

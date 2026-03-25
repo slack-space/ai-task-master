@@ -35,8 +35,5 @@
   "homepage": "https://github.com/slack-space/ai-task-master#readme",
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "js-yaml": "^4.1.1"
   }
 }

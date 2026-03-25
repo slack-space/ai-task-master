@@ -2,8 +2,6 @@
 
 set -e
 
-echo "[DEBUG ADAPTER] AI_TASK_MASTER_PATH=$AI_TASK_MASTER_PATH"
-
 PAYLOAD_BASE64="$1"
 PAYLOAD=$(echo "$PAYLOAD_BASE64" | base64 --decode)
 
@@ -102,7 +100,6 @@ build_script() {
 
   CURRENT_PATH="$AI_TASK_MASTER_PATH"
 
-  echo "[DEBUG ADAPTER](before script creation) CURRENT_PATH=$AI_TASK_MASTER_PATH"
   cat > "$SCRIPT_PATH" <<EOF
 #!/bin/bash
 
