@@ -5,9 +5,21 @@ set -e
 PAYLOAD_BASE64="$1"
 PAYLOAD=$(echo "$PAYLOAD_BASE64" | base64 --decode)
 
+LOG_FILE="${AI_TASK_MASTER_LOG:-$HOME/.ai-task-master/fallback.log}"
+mkdir -p "$(dirname "$LOG_FILE")"
+
 # --- deps ---
-if ! command -v jq &> /dev/null; then
-  echo "[ai-task-master] jq is required but not installed."
+if ! command -v jq >/dev/null 2>&1; then
+  MSG="[ai-task-master] jq is required but not installed.
+
+Install it using your system package manager:
+
+Ubuntu/Debian: sudo apt install -y jq
+macOS (Homebrew): brew install jq"
+
+  echo "$MSG"
+  echo "$MSG" >> "$LOG_FILE"
+
   exit 1
 fi
 
@@ -83,45 +95,39 @@ EOF
 build_script() {
   echo "[ai-task-master] Creating script: $SCRIPT_PATH"
 
-  EXEC=$(echo "$PAYLOAD" | jq -r '.execution.type')
-  EXEC_PATH=$(command -v "$EXEC")
-
-  if [ -z "$EXEC_PATH" ]; then
-    echo "[ai-task-master] Command not found: $EXEC"
-    exit 1
-  fi
-  CURRENT_PATH="$PATH"
-  PROMPT=$(echo "$PAYLOAD" | jq -r '.execution.prompt')
-  FLAGS=$(echo "$PAYLOAD" | jq -r '.execution.flags[]?' | tr '\n' ' ')
-  LOG_FILE=$(echo "$PAYLOAD" | jq -r '.execution.appendLog')
   ENV_EXPORTS=$(echo "$PAYLOAD" | jq -r '.env | to_entries[] | "export \(.key)=\(.value|@sh)"')
+  FULL_COMMAND=$(echo "$PAYLOAD" | jq -r '.execution.fullCommand')
+  TYPE=$(echo "$PAYLOAD" | jq -r '.triggers[0].type')
+
+  CURRENT_PATH="$AI_TASK_MASTER_PATH"
+  
+  SELF_DELETE=""
+  if [ "$TYPE" = "once" ]; then
+    SELF_DELETE="
+# --- self delete (run once only) ---
+launchctl bootout gui/\$(id -u)/$LABEL 2>/dev/null || true
+rm -f \"$PLIST_PATH\"
+rm -f \"$SCRIPT_PATH\""
+  fi
 
   cat > "$SCRIPT_PATH" <<EOF
 #!/bin/bash
 
-cd "$PROJECT_ROOT"
-
-export TASK_MASTER_EXECUTION=true
-export PATH="$CURRENT_PATH"
-LABEL="$LABEL"
-PLIST_PATH="$PLIST_PATH"
-
 # --- env injection ---
 $ENV_EXPORTS
 
+export PATH="\$AI_TASK_MASTER_PATH:\$PATH"
+export TASK_MASTER_EXECUTION=true
+
+cd "$PROJECT_ROOT"
+
+LABEL="$LABEL"
+PLIST_PATH="$PLIST_PATH"
+
 # --- execution ---
-PROMPT_FILE="$SCRIPT_PATH.prompt.txt"
-
 mkdir -p "\$(dirname "$LOG_FILE")"
-
-printf "%s\n" "$PROMPT" > "\$PROMPT_FILE"
-
-$EXEC_PATH $FLAGS < "\$PROMPT_FILE" >> "$LOG_FILE" 2>&1
-
-# --- self delete (run once only) ---
-launchctl bootout gui/\$(id -u)/$LABEL 2>/dev/null || true
-rm -f "$PLIST_PATH"
-rm -f "$0"
+eval "$FULL_COMMAND" >> "$LOG_FILE" 2>&1
+$SELF_DELETE
 EOF
 
   chmod +x "$SCRIPT_PATH"
@@ -135,8 +141,20 @@ build_plist() {
 
 if [ "$TYPE" = "once" ]; then
 
-  # force a simple delay (launchd reliability)
-  DELAY=60
+  ISO=$(echo "$PAYLOAD" | jq -r '.triggers[0].time // empty')
+
+  if [ -z "$ISO" ]; then
+    # fallback: now + 1 minute (same behavior as Linux)
+    DATE=$(date -v+1M "+%Y %m %d %H %M")
+  else
+    # clean ISO (remove ms + Z)
+    ISO_CLEAN=$(echo "$ISO" | sed -E 's/\..*//; s/Z$//')
+
+    DATE=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S" "$ISO_CLEAN" "+%s")
+    DATE=$(date -r "$DATE" "+%Y %m %d %H %M")
+  fi
+
+  read Y M D H MIN <<< "$DATE"
 
   cat > "$PLIST_PATH" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -153,14 +171,48 @@ if [ "$TYPE" = "once" ]; then
     <string>$SCRIPT_PATH</string>
   </array>
 
-  <key>StartInterval</key>
-  <integer>$DELAY</integer>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Year</key><integer>$Y</integer>
+    <key>Month</key><integer>$M</integer>
+    <key>Day</key><integer>$D</integer>
+    <key>Hour</key><integer>$H</integer>
+    <key>Minute</key><integer>$MIN</integer>
+  </dict>
 
 </dict>
 </plist>
 EOF
+elif [ "$TYPE" = "every" ]; then
+  NUM=$(echo "$PAYLOAD" | jq -r '.triggers[0].interval')
+  UNIT=$(echo "$PAYLOAD" | jq -r '.triggers[0].unit')
 
-  else
+  if [ "$UNIT" = "m" ]; then
+    SEC=$((NUM * 60))
+  elif [ "$UNIT" = "h" ]; then
+    SEC=$((NUM * 3600))
+  elif [ "$UNIT" = "d" ]; then
+    SEC=$((NUM * 86400))
+  fi
+
+  cat > "$PLIST_PATH" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$SCRIPT_PATH</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>$SEC</integer>
+</dict>
+</plist>
+EOF
+else
     CAL=$(build_calendar_interval)
 
     cat > "$PLIST_PATH" <<EOF

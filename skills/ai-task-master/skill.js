@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { execSync } = require("child_process");
-const yaml = require("js-yaml");
+//const yaml = require("js-yaml");
 
 const args = {};
 process.argv.slice(2).forEach((arg, i, arr) => {
@@ -14,6 +14,17 @@ process.argv.slice(2).forEach((arg, i, arr) => {
     args[key] = val;
   }
 });
+
+function loadJsonIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (e) {
+    console.error(`[ai-task-master] Failed to parse JSON: ${filePath}`);
+    throw e;
+  }
+}
 
 let operation = args.action || "create";
 
@@ -113,9 +124,9 @@ try {
 projectRoot = path.resolve(projectRoot);
 
 // --- paths ---
-const rootConfigPath = path.join(projectRoot, "ai-task-master.config.yml");
-const skillConfigPath = path.join(__dirname, "ai-task-master.config.yml");
-const skillOverridePath = path.join(__dirname, "ai-task-master.config.override.yml");
+const rootConfigPath = path.join(projectRoot, "ai-task-master.config.json");
+const skillConfigPath = path.join(__dirname, "ai-task-master.config.json");
+const skillOverridePath = path.join(__dirname, "ai-task-master.config.override.json");
 
 // --- default config ---
 const defaultConfig = {
@@ -131,42 +142,45 @@ const defaultConfig = {
 };
 
 // --- load or create config ---
-// --- load config (correct order) ---
+// --- load config (JSON version) ---
 let config = { ...defaultConfig };
 
 // 1. load skill defaults
-if (fs.existsSync(skillConfigPath)) {
-  const skillConfig = yaml.load(fs.readFileSync(skillConfigPath, "utf8"));
+const skillConfig = loadJsonIfExists(skillConfigPath);
+if (skillConfig) {
   config = deepMerge(config, skillConfig);
 }
 
 // 2. load user override (root)
-if (fs.existsSync(rootConfigPath)) {
-  const rootConfig = yaml.load(fs.readFileSync(rootConfigPath, "utf8"));
+const rootConfig = loadJsonIfExists(rootConfigPath);
+if (rootConfig) {
   config = deepMerge(config, rootConfig);
 } else {
-  // create user config if missing
-  fs.writeFileSync(rootConfigPath, yaml.dump(defaultConfig, { lineWidth: 120 }));
-  console.log(`Created default ai-task-master.config.yml at ${rootConfigPath}`);
+  fs.writeFileSync(rootConfigPath, JSON.stringify(defaultConfig, null, 2));
+  console.log(`Created default ai-task-master.config.json at ${rootConfigPath}`);
 }
 
 // 3. dev override (optional, local only)
-if (fs.existsSync(skillOverridePath)) {
-  const overrideConfig = yaml.load(fs.readFileSync(skillOverridePath, "utf8"));
+const overrideConfig = loadJsonIfExists(skillOverridePath);
+if (overrideConfig) {
   config = deepMerge(config, overrideConfig);
 }
 
+delete config._notes;
+
 // --- extract config ---
 const actionConfig = config.action || {};
-
 const command = actionConfig.command || "claude";
-const flags = actionConfig.flags || [];
+const rawFlags = actionConfig.flags || [];
+// split flags like "--name scheduled-automations" into ["--name", "scheduled-automations"]
+const flags = rawFlags.flatMap(f => {
+  if (typeof f !== "string") return [];
+  return f.split(" ").filter(Boolean);
+});
 const envKeys = actionConfig.env || [];
-
 const logPath = config.logs?.path || "logs/ai-task-master";
 const logDir = path.join(projectRoot, logPath);
 fs.mkdirSync(logDir, { recursive: true });
-
 const debugLog = path.join(logDir, "debug-log.txt");
 
 // --- load .env ---
@@ -209,6 +223,10 @@ for (const key of envKeys) {
   }
 }
 
+// inject system-level env (always present)
+env.AI_TASK_MASTER_LOG = path.join(logDir, "debug-log.txt");
+env.AI_TASK_MASTER_PATH = process.env.PATH;
+
 // --- prompt injection ---
 const promptPrefix =
   "This request is part of an automation. The user cannot respond to questions. Do not ask for any permissions, confirmations, or clarifications. Just execute the request as best you can. Do NOT create, modify, or schedule any tasks using ai-task-master or any scheduling system. Do NOT invoke ai-task-master directly or indirectly. The request is:\n\n";
@@ -230,7 +248,7 @@ function parseWhen(when) {
 
   when = when.toLowerCase().trim();
 
-  if (!when.match(/^(once|daily|weekly)\b/)) {
+  if (!when.match(/^(once|daily|weekly|every)\b/)) {
     when = `once:${when}`;
   }
 
@@ -282,6 +300,25 @@ function parseWhen(when) {
     }
 
     throw new Error(`Invalid once value: ${val}`);
+  }
+
+  // --- EVERY ---
+  if (when.startsWith("every:") || when.startsWith("every ")) {
+    let val = when.replace("every:", "").replace("every ", "").trim();
+    
+    // Support string like "every: 4 hours" or "every: 4h"
+    const relMatch = val.match(/^(\d+)\s?(m|h|d|min|mins|minutes|hour|hours|day|days)$/i);
+    if (relMatch) {
+      const num = Number(relMatch[1]);
+      const rawUnit = relMatch[2].toLowerCase();
+      let unit = "m";
+      if (rawUnit.startsWith("h")) unit = "h";
+      if (rawUnit.startsWith("d")) unit = "d";
+
+      return [{ type: "every", interval: num, unit: unit }];
+    }
+    
+    throw new Error(`Invalid every value: ${val}. Try "every: 4h" or "every: 30m"`);
   }
 
   // --- DAILY ---
@@ -348,12 +385,26 @@ if (operation === "create") {
 }
 
 // --- execution object (NEW MODEL) ---
+function shellEscape(str) {
+  if (!str) return "''";
+  return "'" + String(str).replace(/'/g, "'\\''") + "'";
+}
+
+const commandParts = [command, ...flags];
+if (finalPrompt) {
+  commandParts.push(shellEscape(finalPrompt));
+}
+
+const fullCommand = commandParts.join(" ");
+//env.AI_TASK_MASTER_COMMAND = fullCommand;
+
 const execution = {
   type: command,
   prompt: finalPrompt,
   flags,
   session,
-  appendLog: debugLog
+  appendLog: debugLog,
+  fullCommand
 };
 
 //console.log("ENV BEING SENT:", env);
@@ -396,7 +447,7 @@ if (dryRun) {
   console.log(`  ${JSON.stringify(triggers, null, 2)}\n`);
 
   console.log("Command:");
-  console.log(`  ${fullScript}\n`);
+  console.log(`  ${fullCommand}\\n`);
 
   console.log("Project Root:");
   console.log(`  ${projectRoot}\n`);
@@ -407,19 +458,46 @@ if (dryRun) {
 // --- route ---
 if (os.platform() === "win32") {
   const needsElevation = ["create", "delete", "run"].includes(operation);
+  
+  let isElevated = false;
+  try {
+    const out = execSync('powershell -NoProfile -Command "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    isElevated = (out === 'True');
+  } catch (e) {
+    // assume not elevated
+  }
 
   const psCommand = `powershell -ExecutionPolicy Bypass -File "${__dirname}/adapters/windows.ps1" ${payload}`;
 
-  if (needsElevation) {
+  if (needsElevation && !isElevated) {
     execSync(`sudo ${psCommand}`, { stdio: "inherit" });
   } else {
     execSync(psCommand, { stdio: "inherit" });
   }
-} else {
+} else if (os.platform() === "darwin") {
   execSync(
     `bash "${__dirname}/adapters/mac.sh" ${payload}`,
-    { stdio: "inherit" }
+    {
+      env: {
+        ...process.env,
+        ...env
+      },
+      stdio: "inherit"
+    }
   );
+} else if (os.platform() === "linux") {
+  execSync(
+    `bash "${__dirname}/adapters/linux.sh" ${payload}`,
+    {
+      env: {
+        ...process.env,
+        ...env
+      },
+      stdio: "inherit"
+    }
+  );
+} else {
+  throw new Error(`[ai-task-master] Unsupported platform: ${platform}`);
 }
 
 function deepMerge(target, source) {

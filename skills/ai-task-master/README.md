@@ -38,20 +38,29 @@ It uses your OS scheduler (macOS / Windows) to execute tasks later.
 
 ## ⚙️ Configuration
 
-Create `ai-task-master.config.yml` in your project root:
+Create `ai-task-master.config.json` in your project root:
 
-```yaml
-action:
-  command: claude
-
-  flags:
-    - "--name scheduled-automations"
-
-  env:
-    - ANTHROPIC_API_KEY
-
-logs:
-  path: logs/ai-task-master
+```json
+{
+  "action": {
+    "command": "claude",
+    "flags": [
+      "--name scheduled-automations"
+    ],
+    "env": [
+      "ANTHROPIC_API_KEY"
+    ]
+  },
+  "logs": {
+    "path": "logs/ai-task-master"
+  },
+  "_notes": {
+    "env": "List environment variables needed to call the command (claude) in the automation. Be sure these are in your environment or project/workspace root .env file.",
+    "claude-env": "Include either ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN in env.",
+    "claude-flags": "Baseline Claude flags are included by default. Other flags can be used as appropriate, such as --dangerously-skip-permissions (use with caution) or --model <modelname> (e.g. '--model haiku' or '--model ollama-local-model-name').",
+    "ollama-notes": "Include ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY in env. Set these to your Ollama server and a random value for the key in your environment (see 'env' note), and set '--model <ollama-model-name>' in flags."
+  }  
+}
 ```
 
 ---
@@ -80,6 +89,7 @@ Examples:
 --when "14:30"              # today at 14:30
 --when "daily:09:00"        # every day at 9am
 --when "weekly:mon@08:00"   # every Monday at 8am
+--when "every:4h"           # every 4 hours
 ```
 
 ---
