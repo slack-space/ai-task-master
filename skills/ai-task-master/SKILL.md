@@ -108,9 +108,12 @@ Describes when the task should run.
   - Weekly
     - `weekly:mon@08:00`
     - `weekly:mon,wed,fri@15:30`
+  - Every N Time Units
+    - `every 2h`
+    - `every 20m`
 
 **NOTE:**
-  - If no 'daily' or 'weekly' prefix is provided → the task is treated as a one-time futureexecution
+  - If no prefix such as 'daily' or 'weekly' is provided → the task is treated as a one-time future execution
 
 ---
 

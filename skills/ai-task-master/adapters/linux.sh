@@ -37,24 +37,30 @@ build_script() {
   echo "[ai-task-master] Creating script: $SCRIPT_PATH"
 
   ENV_EXPORTS=$(echo "$PAYLOAD" | jq -r '.env | to_entries[] | "export \(.key)=\(.value|@sh)"')
+  TYPE=$(echo "$PAYLOAD" | jq -r '.triggers[0].type')
+
+  SELF_DELETE=""
+  if [ "$TYPE" = "once" ]; then
+    SELF_DELETE="
+# --- self delete (for one-time jobs) ---
+crontab -l | grep -v \"$SCRIPT_PATH\" | crontab -
+rm -f \"$SCRIPT_PATH\""
+  fi
 
   cat > "$SCRIPT_PATH" <<EOF
 #!/bin/bash
 
-export PATH="$AI_TASK_MASTER_PATH"
+# --- env injection ---
+$ENV_EXPORTS
+
+export PATH="\$AI_TASK_MASTER_PATH:\$PATH"
 export TASK_MASTER_EXECUTION=true
 
 cd "$PROJECT_ROOT"
 
-# --- env injection ---
-$ENV_EXPORTS
-
 # --- execution ---
 eval "$FULL_COMMAND" >> "$LOG_FILE" 2>&1
-
-# --- self delete (for one-time jobs) ---
-crontab -l | grep -v "$SCRIPT_PATH" | crontab -
-rm -f "$SCRIPT_PATH"
+$SELF_DELETE
 EOF
 
   chmod +x "$SCRIPT_PATH"
@@ -117,6 +123,18 @@ build_cron_expression() {
     esac
 
     echo "$M $H * * $D"
+
+  elif [ "$TYPE" = "every" ]; then
+    NUM=$(echo "$PAYLOAD" | jq -r '.triggers[0].interval')
+    UNIT=$(echo "$PAYLOAD" | jq -r '.triggers[0].unit')
+
+    if [ "$UNIT" = "m" ]; then
+      echo "*/$NUM * * * *"
+    elif [ "$UNIT" = "h" ]; then
+      echo "0 */$NUM * * *"
+    elif [ "$UNIT" = "d" ]; then
+      echo "0 0 */$NUM * *"
+    fi
   fi
 }
 

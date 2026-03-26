@@ -97,13 +97,26 @@ build_script() {
 
   ENV_EXPORTS=$(echo "$PAYLOAD" | jq -r '.env | to_entries[] | "export \(.key)=\(.value|@sh)"')
   FULL_COMMAND=$(echo "$PAYLOAD" | jq -r '.execution.fullCommand')
+  TYPE=$(echo "$PAYLOAD" | jq -r '.triggers[0].type')
 
   CURRENT_PATH="$AI_TASK_MASTER_PATH"
+  
+  SELF_DELETE=""
+  if [ "$TYPE" = "once" ]; then
+    SELF_DELETE="
+# --- self delete (run once only) ---
+launchctl bootout gui/\$(id -u)/$LABEL 2>/dev/null || true
+rm -f \"$PLIST_PATH\"
+rm -f \"$SCRIPT_PATH\""
+  fi
 
   cat > "$SCRIPT_PATH" <<EOF
 #!/bin/bash
 
-export PATH="$AI_TASK_MASTER_PATH"
+# --- env injection ---
+$ENV_EXPORTS
+
+export PATH="\$AI_TASK_MASTER_PATH:\$PATH"
 export TASK_MASTER_EXECUTION=true
 
 cd "$PROJECT_ROOT"
@@ -111,17 +124,10 @@ cd "$PROJECT_ROOT"
 LABEL="$LABEL"
 PLIST_PATH="$PLIST_PATH"
 
-# --- env injection ---
-$ENV_EXPORTS
-
 # --- execution ---
 mkdir -p "\$(dirname "$LOG_FILE")"
 eval "$FULL_COMMAND" >> "$LOG_FILE" 2>&1
-
-# --- self delete (run once only) ---
-launchctl bootout gui/\$(id -u)/$LABEL 2>/dev/null || true
-rm -f "$PLIST_PATH"
-rm -f "$SCRIPT_PATH"
+$SELF_DELETE
 EOF
 
   chmod +x "$SCRIPT_PATH"
@@ -177,7 +183,36 @@ if [ "$TYPE" = "once" ]; then
 </dict>
 </plist>
 EOF
-  else
+elif [ "$TYPE" = "every" ]; then
+  NUM=$(echo "$PAYLOAD" | jq -r '.triggers[0].interval')
+  UNIT=$(echo "$PAYLOAD" | jq -r '.triggers[0].unit')
+
+  if [ "$UNIT" = "m" ]; then
+    SEC=$((NUM * 60))
+  elif [ "$UNIT" = "h" ]; then
+    SEC=$((NUM * 3600))
+  elif [ "$UNIT" = "d" ]; then
+    SEC=$((NUM * 86400))
+  fi
+
+  cat > "$PLIST_PATH" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$SCRIPT_PATH</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>$SEC</integer>
+</dict>
+</plist>
+EOF
+else
     CAL=$(build_calendar_interval)
 
     cat > "$PLIST_PATH" <<EOF

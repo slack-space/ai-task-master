@@ -46,7 +46,7 @@ Agent → Task Master Skill → OS Scheduler → Scheduled AI process -> Files
 ```
 
 * 🧠 Execution: Claude (default)
-* 📅 Scheduling: macOS + Windows
+* 📅 Scheduling: macOS + Windows + Linux
 * 📂 Output: Filesystem
 
 No daemon. No background service. No state drift.
@@ -99,6 +99,7 @@ npx skills install slack-space/ai-task-master
 
 * ✅ macOS (launchd)
 * ✅ Windows (Task Scheduler)
+* ✅ Linux (crontab)
 
 ---
 

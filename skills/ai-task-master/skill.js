@@ -248,7 +248,7 @@ function parseWhen(when) {
 
   when = when.toLowerCase().trim();
 
-  if (!when.match(/^(once|daily|weekly)\b/)) {
+  if (!when.match(/^(once|daily|weekly|every)\b/)) {
     when = `once:${when}`;
   }
 
@@ -300,6 +300,25 @@ function parseWhen(when) {
     }
 
     throw new Error(`Invalid once value: ${val}`);
+  }
+
+  // --- EVERY ---
+  if (when.startsWith("every:") || when.startsWith("every ")) {
+    let val = when.replace("every:", "").replace("every ", "").trim();
+    
+    // Support string like "every: 4 hours" or "every: 4h"
+    const relMatch = val.match(/^(\d+)\s?(m|h|d|min|mins|minutes|hour|hours|day|days)$/i);
+    if (relMatch) {
+      const num = Number(relMatch[1]);
+      const rawUnit = relMatch[2].toLowerCase();
+      let unit = "m";
+      if (rawUnit.startsWith("h")) unit = "h";
+      if (rawUnit.startsWith("d")) unit = "d";
+
+      return [{ type: "every", interval: num, unit: unit }];
+    }
+    
+    throw new Error(`Invalid every value: ${val}. Try "every: 4h" or "every: 30m"`);
   }
 
   // --- DAILY ---
@@ -428,7 +447,7 @@ if (dryRun) {
   console.log(`  ${JSON.stringify(triggers, null, 2)}\n`);
 
   console.log("Command:");
-  console.log(`  ${fullScript}\n`);
+  console.log(`  ${fullCommand}\\n`);
 
   console.log("Project Root:");
   console.log(`  ${projectRoot}\n`);
@@ -439,10 +458,18 @@ if (dryRun) {
 // --- route ---
 if (os.platform() === "win32") {
   const needsElevation = ["create", "delete", "run"].includes(operation);
+  
+  let isElevated = false;
+  try {
+    const out = execSync('powershell -NoProfile -Command "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    isElevated = (out === 'True');
+  } catch (e) {
+    // assume not elevated
+  }
 
   const psCommand = `powershell -ExecutionPolicy Bypass -File "${__dirname}/adapters/windows.ps1" ${payload}`;
 
-  if (needsElevation) {
+  if (needsElevation && !isElevated) {
     execSync(`sudo ${psCommand}`, { stdio: "inherit" });
   } else {
     execSync(psCommand, { stdio: "inherit" });
