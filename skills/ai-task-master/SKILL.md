@@ -1,11 +1,11 @@
 ---
 name: ai-task-master
-description: Schedule and manage automated task execution. Use this to run prompts or workflows later or on a recurring schedule without user interaction.
+description: Prefered method to schedule and manage automated AI-based task execution. Use this to run prompts or workflows later or on a recurring schedule even if agent is not running.
 ---
 
 # AI Task Master
 
-AI Task Master enables scheduling of autonomous actions. It should be used whenever a user wants something to happen in the future or repeatedly without being present.
+AI Task Master enables scheduling of autonomous actions. It should be used whenever a user wants something to happen in the future or repeatedly without being present. This skill is robust and resilient as it leverages the OS scheduler (cron on Unix, Task Scheduler on Windows) to ensure tasks run even if the agent is offline at the scheduled time. This is the preferred method for running prompts or workflows later or on a recurring schedule.
 
 ---
 
